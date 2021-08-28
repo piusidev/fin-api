@@ -9,7 +9,7 @@ const customers = [];
 
 // Middleware
 const accountExists = (req, res, next) => {
-  const { cpf } = req.query;
+  const { cpf } = req.headers;
   const customer = customers.find(
     (customer) => customer.cpf === cpf
   );
@@ -49,5 +49,21 @@ app.get('/statement', accountExists, (req, res)=> {
 
   return res.status(200).json(customer.statement);
 });
+
+app.post('/deposit', accountExists, (req, res) => {
+  const { description, amount, type } = req.body;
+  const { customer } = req;
+
+  const operation = {
+    description,
+    amount,
+    type,
+    created_at: new Date()
+  };
+
+  customer.statement.push(operation);
+
+  return res.status(201).json({ operation });
+})
 
 app.listen(3333);
