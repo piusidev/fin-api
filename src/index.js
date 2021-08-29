@@ -1,4 +1,3 @@
-const { request } = require('express');
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const app = express();
@@ -34,6 +33,8 @@ const getBalance = (statement) => {
 
   return balance;
 };
+
+// Endpoints
 
 app.post('/account', (req, res) => {
   const { cpf, name } = req.body;
@@ -96,6 +97,28 @@ app.post('/withdraw', accountExists, (req, res) => {
   customer.statement.push(operation);
 
   return res.status(201).json({ success: `Your balance is: ${balance}` });
-})
+});
+
+const formatDate = (date) => {
+  date = new Date(date);
+
+  const day = date.getDay();
+  const month = date.getMonth();
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`
+}
+
+
+app.get('/statement/date', accountExists, (req, res)=> {
+  const { customer } = req;
+  const { date } = req.query;
+
+  const statement = customer.statement.filter((operation) =>
+    formatDate(operation.created_at) === formatDate(date)
+  );
+
+  return res.status(200).json(statement);
+});
 
 app.listen(3333);
