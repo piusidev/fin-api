@@ -21,7 +21,19 @@ const accountExists = (req, res, next) => {
   req.customer = customer;
 
   return next();
-}
+};
+
+const getBalance = (statement) => {
+  const balance = statement.reduce((acc, operation) => {
+    if(operation.type === 'credit') {
+      return acc + operation.amount;
+    }else {
+      return acc - operation.amount;
+    }
+  }, 0);
+
+  return balance;
+};
 
 app.post('/account', (req, res) => {
   const { cpf, name } = req.body;
@@ -51,19 +63,39 @@ app.get('/statement', accountExists, (req, res)=> {
 });
 
 app.post('/deposit', accountExists, (req, res) => {
-  const { description, amount, type } = req.body;
+  const { description, amount } = req.body;
   const { customer } = req;
 
   const operation = {
     description,
     amount,
-    type,
+    type: 'credit',
     created_at: new Date()
   };
 
   customer.statement.push(operation);
 
   return res.status(201).json({ operation });
+});
+
+app.post('/withdraw', accountExists, (req, res) => {
+  const { amount } = req.body;
+  const { customer } = req;
+  const balance = getBalance(customer.statement);
+
+  if(balance < amount) {
+    return res.status(400).json({ error: "Insufficents funds." })
+  }
+
+  const operation = {
+    amount,
+    type: 'debit',
+    created_at: new Date()
+  };
+
+  customer.statement.push(operation);
+
+  return res.status(201).json({ success: `Your balance is: ${balance}` });
 })
 
 app.listen(3333);
